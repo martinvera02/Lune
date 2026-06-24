@@ -2,7 +2,8 @@ import { motion } from 'framer-motion'
 import { MOODS } from '@/lib/constants'
 
 export default function ProfileCard({ profile, stackBehind = [], onView, onWrite, onSkip, checking }) {
-  const mood   = MOODS.find(m => m.id === profile.mood_id) || MOODS[0]
+  if (!profile) return null
+  const mood = MOODS.find(m => m.id === profile?.mood_id) || MOODS[0]
   const tags   = Object.values(profile.cultural_tags || {}).flat().slice(0, 4)
   const answer = profile.profile_answers?.[0]
 

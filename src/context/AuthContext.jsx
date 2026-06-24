@@ -4,34 +4,29 @@ import { supabase } from '@/lib/supabase'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [session, setSession]     = useState(undefined)
-  const [profile, setProfile]     = useState(null)
-  const [loading, setLoading]     = useState(true)
-  const [initialized, setInitialized] = useState(false)
+  const [session, setSession]       = useState(undefined)
+  const [profile, setProfile]       = useState(null)
+  const [loading, setLoading]       = useState(true)  // true hasta que tengamos datos reales
 
   useEffect(() => {
-    // Carga inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Carga inicial — única vez que mostramos el orbe
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
       if (session) {
-        fetchProfile(session.user.id).finally(() => {
-          setLoading(false)
-          setInitialized(true)
-        })
-      } else {
-        setLoading(false)
-        setInitialized(true)
+        await fetchProfile(session.user.id)
       }
+      setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Ignorar eventos que no son cambios reales de sesión
-      if (!initialized) return
+    // Listener de cambios de auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Ignorar token refresh — no queremos re-renderizar
       if (event === 'TOKEN_REFRESHED') return
 
       setSession(session)
+
       if (session) {
-        // Refetch silencioso — sin poner loading a true
+        // Fetch silencioso — sin poner loading a true
         fetchProfile(session.user.id, false)
       } else {
         setProfile(null)
@@ -39,10 +34,11 @@ export function AuthProvider({ children }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [initialized])
+  }, [])
 
   async function fetchProfile(userId, showLoading = true) {
     if (showLoading) setLoading(true)
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*, profile_answers(*, questions(content))')
@@ -81,19 +77,21 @@ export function AuthProvider({ children }) {
     return { data, error }
   }
 
-  const value = {
-    session,
-    user: session?.user ?? null,
-    profile,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    updateProfile,
-    refetchProfile: () => session && fetchProfile(session.user.id, false),
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{
+      session,
+      user: session?.user ?? null,
+      profile,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      updateProfile,
+      refetchProfile: () => session && fetchProfile(session.user.id, false),
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

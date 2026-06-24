@@ -1,15 +1,18 @@
 import { motion } from 'framer-motion'
-import { MOODS, DEEP_QUESTIONS } from '@/lib/constants'
+import { MOODS, DEEP_QUESTIONS, GENDERS, ORIENTATIONS } from '@/lib/constants'
 
 export default function PublicProfile({ profile, onClose, onWrite }) {
-  const mood    = MOODS.find(m => m.id === profile.mood_id) || MOODS[0]
-  const tags    = profile.cultural_tags || { music: [], film: [], books: [] }
-  const allTags = [
-    ...( tags.music || []).map(t => ({ label: t, icon: '🎵', cat: 'music' })),
-    ...( tags.film  || []).map(t => ({ label: t, icon: '🎬', cat: 'film'  })),
-    ...( tags.books || []).map(t => ({ label: t, icon: '📖', cat: 'books' })),
+  if (!profile) return null
+  const mood = MOODS.find(m => m.id === profile?.mood_id) || MOODS[0]
+  const tags      = profile.cultural_tags || { music: [], film: [], books: [] }
+  const allTags   = [
+    ...(tags.music || []).map(t => ({ label: t, icon: '🎵', cat: 'music' })),
+    ...(tags.film  || []).map(t => ({ label: t, icon: '🎬', cat: 'film'  })),
+    ...(tags.books || []).map(t => ({ label: t, icon: '📖', cat: 'books' })),
   ]
-  const answers = profile.profile_answers || []
+  const answers    = profile.profile_answers || []
+  const genderData = GENDERS.find(g => g.id === profile.gender)
+  const orientData = ORIENTATIONS.find(o => o.id === profile.orientation)
 
   return (
     <motion.div
@@ -36,7 +39,6 @@ export default function PublicProfile({ profile, onClose, onWrite }) {
           border: '1px solid var(--border2)', borderBottom: 'none',
         }}
       >
-        {/* Handle */}
         <div style={{ width: 40, height: 4, borderRadius: 4, background: 'var(--surface2)', margin: '16px auto 0' }} />
 
         {/* Hero */}
@@ -71,6 +73,7 @@ export default function PublicProfile({ profile, onClose, onWrite }) {
 
         {/* Content */}
         <div style={{ padding: '48px 24px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
           {/* Name */}
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 26 }}>
@@ -78,6 +81,18 @@ export default function PublicProfile({ profile, onClose, onWrite }) {
             </h2>
             <p style={{ color: 'var(--text3)', fontSize: 13, marginTop: 2 }}>{profile.age} años</p>
           </div>
+
+          {/* Identidad */}
+          {(genderData || orientData) && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {genderData && genderData.id !== 'no_especificado' && (
+                <span className="tag">{genderData.emoji} {genderData.label}</span>
+              )}
+              {orientData && orientData.id !== 'no_especificado' && (
+                <span className="tag">🏳️‍🌈 {orientData.label}</span>
+              )}
+            </div>
+          )}
 
           {/* Mood */}
           <div style={{
@@ -133,12 +148,8 @@ export default function PublicProfile({ profile, onClose, onWrite }) {
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button className="btn btn-ghost" onClick={onClose} style={{ flex: 1 }}>
-              Cerrar
-            </button>
-            <button className="btn btn-primary" onClick={onWrite} style={{ flex: 2 }}>
-              ✍️ Escribirle
-            </button>
+            <button className="btn btn-ghost" onClick={onClose} style={{ flex: 1 }}>Cerrar</button>
+            <button className="btn btn-primary" onClick={onWrite} style={{ flex: 2 }}>✍️ Escribirle</button>
           </div>
         </div>
       </motion.div>

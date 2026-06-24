@@ -2,7 +2,8 @@ import { motion } from 'framer-motion'
 import { MOODS } from '@/lib/constants'
 
 export default function MatchScreen({ profile, onContinue }) {
-  const mood = MOODS.find(m => m.id === profile.mood_id) || MOODS[0]
+  if (!profile) return null
+  const mood = MOODS.find(m => m.id === profile?.mood_id) || MOODS[0]
 
   return (
     <motion.div

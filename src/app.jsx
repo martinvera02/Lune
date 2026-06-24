@@ -8,23 +8,32 @@ import AuthPage       from '@/pages/AuthPage'
 import OnboardingPage from '@/pages/OnboardingPage'
 import AppShell       from '@/pages/AppShell'
 
+const Spinner = () => (
+  <div className="app-loading"><div className="loading-orb" /></div>
+)
+
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
-  if (loading) return <div className="app-loading"><div className="loading-orb" /></div>
+  if (loading) return <Spinner />
   if (!session) return <Navigate to="/auth" replace />
   return children
 }
 
 function RequireProfile({ children }) {
   const { session, profile, loading } = useAuth()
-  if (loading) return <div className="app-loading"><div className="loading-orb" /></div>
+  // Esperar SIEMPRE a que loading sea false antes de decidir
+  if (loading) return <Spinner />
   if (!session) return <Navigate to="/auth" replace />
   if (!profile) return <Navigate to="/onboarding" replace />
   return children
 }
 
 function AppRoutes() {
-  const { session, profile } = useAuth()
+  const { session, profile, loading } = useAuth()
+
+  // No renderizar rutas hasta tener el estado inicial resuelto
+  if (loading) return <Spinner />
+
   return (
     <Routes>
       <Route path="/" element={
@@ -32,8 +41,12 @@ function AppRoutes() {
           ? profile ? <Navigate to="/app" replace /> : <Navigate to="/onboarding" replace />
           : <LandingPage />
       }/>
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
+      <Route path="/auth" element={
+        session ? <Navigate to="/app" replace /> : <AuthPage />
+      }/>
+      <Route path="/onboarding" element={
+        <RequireAuth><OnboardingPage /></RequireAuth>
+      }/>
       <Route path="/app/*" element={
         <RequireProfile>
           <ConnectionsProvider>

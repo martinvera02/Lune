@@ -76,7 +76,7 @@ export default function OnboardingPage() {
       const { data: question } = await supabase
         .from('questions')
         .select('id')
-        .like('content', '%última cosa%')
+        .ilike('content', '%ltima cosa%')
         .single()
 
       if (question?.id) {
