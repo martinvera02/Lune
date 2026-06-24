@@ -1,88 +1,136 @@
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { useAuth } from '@/context/AuthContext'
+import { useNotifications } from '@/hooks/useNotifications'
 import { MOODS, DEEP_QUESTIONS, GENDERS, ORIENTATIONS } from '@/lib/constants'
+import MoodSelector from '@/components/profile/MoodSelector'
+import EditProfile  from '@/components/profile/EditProfile'
 
-export default function PublicProfile({ profile, onClose, onWrite }) {
-  const mood      = MOODS.find(m => m.id === profile.mood_id) || MOODS[0]
-  const tags      = profile.cultural_tags || { music: [], film: [], books: [] }
-  const allTags   = [
+export default function ProfilePage() {
+  const { profile, updateProfile, signOut } = useAuth()
+  const { notifications, unread, markAllRead } = useNotifications()
+  const [editMood, setEditMood]       = useState(false)
+  const [editProfile, setEditProfile] = useState(false)
+  const [showNotifs, setShowNotifs]   = useState(false)
+  const [signingOut, setSigningOut]   = useState(false)
+
+  if (!profile) return (
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="loading-orb" />
+    </div>
+  )
+
+  const mood = MOODS.find(m => m.id === profile?.mood_id) || MOODS[0]
+  const tags    = profile.cultural_tags || { music: [], film: [], books: [] }
+  const allTags = [
     ...(tags.music || []).map(t => ({ label: t, icon: '🎵', cat: 'music' })),
     ...(tags.film  || []).map(t => ({ label: t, icon: '🎬', cat: 'film'  })),
     ...(tags.books || []).map(t => ({ label: t, icon: '📖', cat: 'books' })),
   ]
-  const answers    = profile.profile_answers || []
-  const genderData = GENDERS.find(g => g.id === profile.gender)
-  const orientData = ORIENTATIONS.find(o => o.id === profile.orientation)
+  const answers      = profile.profile_answers || []
+  const genderData   = GENDERS.find(g => g.id === profile.gender)
+  const orientData   = ORIENTATIONS.find(o => o.id === profile.orientation)
+
+  async function handleMoodChange(m) { await updateProfile({ mood_id: m.id }); setEditMood(false) }
+  async function handleSignOut() { setSigningOut(true); await signOut() }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(10,8,18,0.85)', backdropFilter: 'blur(12px)',
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        style={{
-          width: '100%', maxWidth: 430,
-          background: 'var(--bg2)',
-          borderRadius: '28px 28px 0 0',
-          maxHeight: '90dvh', overflowY: 'auto',
-          border: '1px solid var(--border2)', borderBottom: 'none',
-        }}
-      >
-        <div style={{ width: 40, height: 4, borderRadius: 4, background: 'var(--surface2)', margin: '16px auto 0' }} />
-
-        {/* Hero */}
-        <div style={{ position: 'relative', height: 180, marginTop: 12 }}>
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(135deg, ${mood.color}44, #1c1728)`,
-            borderRadius: '20px 20px 0 0',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden',
-          }}>
-            {profile.photo_url
-              ? <img src={profile.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
-              : <span style={{ fontSize: 64, opacity: 0.2 }}>🌙</span>
-            }
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent, var(--bg2))' }} />
-          </div>
-          <div style={{
-            position: 'absolute', bottom: -36, left: 24,
-            width: 72, height: 72, borderRadius: '50%',
-            border: '3px solid var(--bg2)',
-            background: `${mood.color}33`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 34, overflow: 'hidden',
-          }}>
-            {profile.photo_url
-              ? <img src={profile.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : mood.emoji
-            }
-          </div>
+    <div className="page-scroll">
+      {/* Hero */}
+      <div style={{ position: 'relative', height: 220 }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: `linear-gradient(135deg, ${mood.color}44, #1c1728)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 80, overflow: 'hidden',
+        }}>
+          {profile.photo_url
+            ? <img src={profile.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
+            : <span style={{ opacity: 0.3 }}>🌙</span>
+          }
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent, var(--bg))' }} />
         </div>
 
-        {/* Content */}
-        <div style={{ padding: '48px 24px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Avatar */}
+        <div style={{
+          position: 'absolute', bottom: -44, left: 24,
+          width: 88, height: 88, borderRadius: '50%',
+          border: '3px solid var(--bg)', background: `${mood.color}33`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 40, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', overflow: 'hidden',
+        }}>
+          {profile.photo_url
+            ? <img src={profile.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : mood.emoji
+          }
+        </div>
 
-          {/* Name */}
+        {/* Notifications bell */}
+        <button
+          onClick={() => { setShowNotifs(s => !s); if (unread > 0) markAllRead() }}
+          style={{
+            position: 'absolute', top: 16, right: 16,
+            width: 40, height: 40, borderRadius: '50%',
+            background: 'rgba(14,12,20,0.7)', backdropFilter: 'blur(10px)',
+            border: '1px solid var(--border2)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+          }}
+        >
+          🔔
+          {unread > 0 && (
+            <div style={{
+              position: 'absolute', top: -2, right: -2,
+              width: 16, height: 16, borderRadius: '50%',
+              background: 'var(--red)', fontSize: 9, fontWeight: 700, color: 'white',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {unread}
+            </div>
+          )}
+        </button>
+      </div>
+
+      {/* Notifications panel */}
+      {showNotifs && (
+        <div style={{ margin: '60px 24px 0', padding: 16, borderRadius: 'var(--radius-sm)', background: 'var(--surface)', border: '1px solid var(--border2)' }}>
+          <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--accent)', fontWeight: 600, marginBottom: 12 }}>Notificaciones</p>
+          {notifications.length === 0
+            ? <p style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: '16px 0' }}>Sin notificaciones</p>
+            : notifications.slice(0, 10).map(n => (
+              <div key={n.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{n.type === 'new_message' ? '💬' : '💜'}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: n.read ? 400 : 600 }}>{n.title}</div>
+                  {n.body && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{n.body}</div>}
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      )}
+
+      {/* Content */}
+      <div style={{ padding: '56px 24px 40px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+        {/* Name + edit */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 26 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 28 }}>
               {profile.display_name}
             </h2>
-            <p style={{ color: 'var(--text3)', fontSize: 13, marginTop: 2 }}>{profile.age} años</p>
+            <p style={{ color: 'var(--text3)', fontSize: 13, marginTop: 2 }}>{profile.age} años · Lune</p>
           </div>
+          <button className="btn btn-ghost" style={{ padding: '10px 18px', fontSize: 13 }} onClick={() => setEditProfile(true)}>
+            Editar
+          </button>
+        </div>
 
-          {/* Identidad */}
-          {(genderData || orientData) && (
+        {/* Género y orientación */}
+        {(genderData || orientData) && (
+          <div>
+            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--accent)', fontWeight: 600, marginBottom: 10 }}>
+              Identidad
+            </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {genderData && genderData.id !== 'no_especificado' && (
                 <span className="tag">{genderData.emoji} {genderData.label}</span>
@@ -91,67 +139,76 @@ export default function PublicProfile({ profile, onClose, onWrite }) {
                 <span className="tag">🏳️‍🌈 {orientData.label}</span>
               )}
             </div>
-          )}
-
-          {/* Mood */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '8px 14px', borderRadius: 100,
-            background: `${mood.color}22`, color: mood.color,
-            border: `1px solid ${mood.color}44`, fontSize: 13,
-          }}>
-            {mood.emoji} {mood.label} — <span style={{ opacity: 0.7 }}>{mood.desc}</span>
           </div>
+        )}
 
-          {/* Compat */}
-          {profile.compatibility && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, color: 'var(--text3)' }}>Compatibilidad</span>
-              <div style={{ flex: 1, height: 4, borderRadius: 4, background: 'var(--surface2)' }}>
-                <div style={{ width: `${profile.compatibility}%`, height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, var(--accent), var(--teal))' }} />
-              </div>
-              <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600 }}>{profile.compatibility}%</span>
-            </div>
-          )}
-
-          {/* Tags */}
-          {allTags.length > 0 && (
+        {/* Mood */}
+        <div>
+          <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--accent)', fontWeight: 600, marginBottom: 10 }}>
+            Mood de hoy
+          </p>
+          <button
+            onClick={() => setEditMood(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '12px 16px', borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface)', border: `1px solid ${mood.color}44`,
+              cursor: 'pointer', width: '100%', textAlign: 'left',
+              fontFamily: 'var(--font-body)', transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: 22 }}>{mood.emoji}</span>
             <div>
-              <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--accent)', fontWeight: 600, marginBottom: 10 }}>
-                Gustos culturales
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {allTags.map(({ label, icon, cat }) => (
-                  <span key={`${cat}-${label}`} className="tag">{icon} {label}</span>
-                ))}
-              </div>
+              <div style={{ fontWeight: 500, color: 'var(--text)', fontSize: 14 }}>{mood.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>{mood.desc}</div>
             </div>
-          )}
+            <span style={{ marginLeft: 'auto', color: 'var(--text3)', fontSize: 12 }}>Cambiar →</span>
+          </button>
+        </div>
 
-          {/* Answers */}
-          {answers.length > 0 && (
-            <div>
-              <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--accent)', fontWeight: 600, marginBottom: 10 }}>
-                Sus respuestas
-              </p>
-              {answers.map(a => (
-                <div key={a.id} style={{ padding: '14px 16px', borderRadius: 'var(--radius-sm)', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 8 }}>
-                  <p style={{ fontSize: 12, color: 'var(--text3)', fontStyle: 'italic', marginBottom: 6 }}>
-                    {a.questions?.content || DEEP_QUESTIONS[0]}
-                  </p>
-                  <p style={{ fontSize: 14, lineHeight: 1.6 }}>{a.answer}</p>
-                </div>
+        {/* Culture tags */}
+        {allTags.length > 0 && (
+          <div>
+            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--accent)', fontWeight: 600, marginBottom: 10 }}>
+              Gustos culturales
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {allTags.map(({ label, icon, cat }) => (
+                <span key={`${cat}-${label}`} className="tag">{icon} {label}</span>
               ))}
             </div>
-          )}
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button className="btn btn-ghost" onClick={onClose} style={{ flex: 1 }}>Cerrar</button>
-            <button className="btn btn-primary" onClick={onWrite} style={{ flex: 2 }}>✍️ Escribirle</button>
           </div>
-        </div>
-      </motion.div>
-    </motion.div>
+        )}
+
+        {/* Answers */}
+        {answers.length > 0 && (
+          <div>
+            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, color: 'var(--accent)', fontWeight: 600, marginBottom: 10 }}>
+              Tus respuestas
+            </p>
+            {answers.map(a => (
+              <div key={a.id} style={{ padding: '14px 16px', borderRadius: 'var(--radius-sm)', background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: 'var(--text3)', fontStyle: 'italic', marginBottom: 6 }}>
+                  {a.questions?.content || DEEP_QUESTIONS[0]}
+                </p>
+                <p style={{ fontSize: 14, lineHeight: 1.6 }}>{a.answer}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Sign out */}
+        <button className="btn btn-ghost" onClick={handleSignOut} disabled={signingOut} style={{ marginTop: 8 }}>
+          {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {editMood && <MoodSelector current={mood} onSelect={handleMoodChange} onClose={() => setEditMood(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {editProfile && <EditProfile onClose={() => setEditProfile(false)} />}
+      </AnimatePresence>
+    </div>
   )
 }
