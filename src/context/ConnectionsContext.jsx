@@ -1,12 +1,14 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
+import { useRateLimit } from '@/hooks/useRateLimit'
 import { CONNECTION_STATUS } from '@/lib/constants'
 
 const ConnectionsContext = createContext(null)
 
 export function ConnectionsProvider({ children }) {
-  const { user, profile } = useAuth()
+  const { user, profile }             = useAuth()
+  const { checkAndLog }               = useRateLimit()
   const [connections, setConnections] = useState([])
   const [loading, setLoading]         = useState(true)
 
@@ -18,7 +20,6 @@ export function ConnectionsProvider({ children }) {
   async function fetchConnections() {
     if (!profile?.id) return
     setLoading(true)
-
     const { data, error } = await supabase
       .from('connections')
       .select(`
@@ -37,6 +38,11 @@ export function ConnectionsProvider({ children }) {
 
   async function sendOpening({ receiverId, questionId, message }) {
     if (!profile?.id) return { data: null, error: new Error('Perfil no encontrado') }
+
+    const rl = await checkAndLog('send_connection')
+    if (!rl.allowed) {
+      return { data: null, error: new Error(rl.reason || 'Límite de conexiones alcanzado') }
+    }
 
     const { data, error } = await supabase
       .from('connections')
@@ -86,13 +92,8 @@ export function ConnectionsProvider({ children }) {
 
   return (
     <ConnectionsContext.Provider value={{
-      connections,
-      loading,
-      totalUnread,
-      sendOpening,
-      acceptConnection,
-      otherProfile,
-      unreadCount,
+      connections, loading, totalUnread,
+      sendOpening, acceptConnection, otherProfile, unreadCount,
       refetch: fetchConnections,
     }}>
       {children}
