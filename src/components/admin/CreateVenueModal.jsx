@@ -51,89 +51,42 @@ export default function CreateVenueModal({ onClose, onCreated }) {
     setSaving(true)
     const pwd = form.temp_password || generatePassword()
 
-    try {
-      // 1. Crear usuario en Supabase Auth via admin API
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email:    form.owner_email.trim(),
-        password: pwd,
-        email_confirm: true,
+    // Crear venue — el usuario se crea manualmente en Supabase Auth
+    const { data: venue, error: venueError } = await supabase
+      .from('venues')
+      .insert({
+        name:          form.name.trim(),
+        description:   form.description.trim(),
+        venue_type:    form.venue_type,
+        address:       form.address.trim(),
+        city:          form.city.trim(),
+        contact_email: form.contact_email.trim(),
+        contact_phone: form.contact_phone.trim(),
+        instagram:     form.instagram.trim(),
+        website:       form.website.trim(),
+        owner_email:   form.owner_email.trim(),
+        plan:          form.plan,
+        active:        true,
       })
-
-      if (authError) throw authError
-
-      // 2. Crear venue vinculado al usuario
-      const { data: venue, error: venueError } = await supabase
-        .from('venues')
-        .insert({
-          name:          form.name.trim(),
-          description:   form.description.trim(),
-          venue_type:    form.venue_type,
-          address:       form.address.trim(),
-          city:          form.city.trim(),
-          contact_email: form.contact_email.trim(),
-          contact_phone: form.contact_phone.trim(),
-          instagram:     form.instagram.trim(),
-          website:       form.website.trim(),
-          owner_email:   form.owner_email.trim(),
-          owner_user_id: authData.user.id,
-          plan:          form.plan,
-          active:        true,
-        })
-        .select()
-        .single()
-
-      if (venueError) throw venueError
-
-      setResult({
-        venueName:  venue.name,
-        ownerEmail: form.owner_email,
-        password:   pwd,
-        loginUrl:   `${window.location.origin}/venue-admin`,
-      })
-      setStep(3)
-      onCreated?.()
-
-    } catch (err) {
-      // Si la API admin no está disponible (anon key), crear sin usuario
-      // y mostrar instrucciones manuales
-      const { data: venue, error: venueError } = await supabase
-        .from('venues')
-        .insert({
-          name:          form.name.trim(),
-          description:   form.description.trim(),
-          venue_type:    form.venue_type,
-          address:       form.address.trim(),
-          city:          form.city.trim(),
-          contact_email: form.contact_email.trim(),
-          contact_phone: form.contact_phone.trim(),
-          instagram:     form.instagram.trim(),
-          website:       form.website.trim(),
-          owner_email:   form.owner_email.trim(),
-          plan:          form.plan,
-          active:        true,
-        })
-        .select()
-        .single()
-
-      if (venueError) {
-        showToast({ message: 'Error al crear el local', type: 'error' })
-        setSaving(false)
-        return
-      }
-
-      setResult({
-        venueName:    venue.name,
-        ownerEmail:   form.owner_email,
-        password:     pwd,
-        loginUrl:     `${window.location.origin}/venue-admin`,
-        manualSetup:  true,
-        venueId:      venue.id,
-      })
-      setStep(3)
-      onCreated?.()
-    }
+      .select()
+      .single()
 
     setSaving(false)
+
+    if (venueError) {
+      showToast({ message: 'Error al crear el local', type: 'error' })
+      return
+    }
+
+    setResult({
+      venueName:   venue.name,
+      ownerEmail:  form.owner_email,
+      password:    pwd,
+      loginUrl:    `${window.location.origin}/venue-admin`,
+      venueId:     venue.id,
+    })
+    setStep(3)
+    onCreated?.()
   }
 
   return (
@@ -272,17 +225,15 @@ export default function CreateVenueModal({ onClose, onCreated }) {
               <CredentialRow label="Contraseña"       value={result.password}    copyable secret />
             </div>
 
-            {result.manualSetup && (
-              <div style={{ padding: '14px 16px', borderRadius: 'var(--radius-sm)', background: 'rgba(252,211,77,0.08)', border: '1px solid rgba(252,211,77,0.25)', fontSize: 13, color: 'var(--gold)', lineHeight: 1.6 }}>
-                ⚠️ Crea el usuario manualmente en <strong>Supabase → Authentication → Users → Add user</strong> con el email y contraseña indicados. Luego ejecuta:
-                <pre style={{ marginTop: 8, fontSize: 11, background: 'var(--bg3)', padding: '8px 10px', borderRadius: 6, overflowX: 'auto', color: 'var(--text2)' }}>
-{`UPDATE venues SET owner_user_id = (
-  SELECT id FROM auth.users 
-  WHERE email = '${result.ownerEmail}'
-) WHERE id = '${result.venueId}';`}
-                </pre>
-              </div>
-            )}
+            <div style={{ padding: '14px 16px', borderRadius: 'var(--radius-sm)', background: 'rgba(252,211,77,0.08)', border: '1px solid rgba(252,211,77,0.25)', fontSize: 13, color: 'var(--gold)', lineHeight: 1.6 }}>
+              <strong>Pasos para activar el acceso:</strong>
+              <br/>1. Ve a <strong>Supabase → Authentication → Users → Add user</strong>
+              <br/>2. Crea el usuario con el email y contraseña de arriba
+              <br/>3. Ejecuta en SQL Editor:
+              <pre style={{ marginTop: 8, fontSize: 11, background: 'var(--bg3)', padding: '8px 10px', borderRadius: 6, overflowX: 'auto', color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>
+{`UPDATE venues SET owner_user_id = (SELECT id FROM auth.users WHERE email = '${result.ownerEmail}') WHERE id = '${result.venueId}';`}
+              </pre>
+            </div>
 
             <button className="btn btn-primary" onClick={onClose} style={{ width: '100%' }}>
               Cerrar
