@@ -41,7 +41,7 @@ function RequireAdmin({ children }) {
 function RequireVenueAuth({ children }) {
   const { session, loading } = useAuth()
   if (loading) return <Spinner />
-  if (!session) return <Navigate to="/auth?redirect=/venue-admin" replace />
+  if (!session) return <Navigate to="/auth?mode=login&redirect=/venue-admin" replace />
   return children
 }
 
