@@ -7,6 +7,7 @@ import LandingPage    from '@/pages/LandingPage'
 import AuthPage       from '@/pages/AuthPage'
 import OnboardingPage from '@/pages/OnboardingPage'
 import AppShell       from '@/pages/AppShell'
+import AdminPage      from '@/pages/AdminPage'
 
 const Spinner = () => (
   <div className="app-loading"><div className="loading-orb" /></div>
@@ -21,17 +22,24 @@ function RequireAuth({ children }) {
 
 function RequireProfile({ children }) {
   const { session, profile, loading } = useAuth()
-  // Esperar SIEMPRE a que loading sea false antes de decidir
   if (loading) return <Spinner />
   if (!session) return <Navigate to="/auth" replace />
   if (!profile) return <Navigate to="/onboarding" replace />
   return children
 }
 
+function RequireAdmin({ children }) {
+  const { profile, loading } = useAuth()
+  if (loading) return <Spinner />
+  if (!profile) return <Navigate to="/auth" replace />
+  if (profile.role !== 'admin' && profile.role !== 'moderator') {
+    return <Navigate to="/app" replace />
+  }
+  return children
+}
+
 function AppRoutes() {
   const { session, profile, loading } = useAuth()
-
-  // No renderizar rutas hasta tener el estado inicial resuelto
   if (loading) return <Spinner />
 
   return (
@@ -56,6 +64,18 @@ function AppRoutes() {
             </EventProvider>
           </ConnectionsProvider>
         </RequireProfile>
+      }/>
+      <Route path="/admin/*" element={
+        <RequireAdmin>
+          <ConnectionsProvider>
+            <EventProvider>
+              <ToastProvider />
+              <div style={{ maxWidth: 430, margin: '0 auto', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+                <AdminPage onBack={() => window.history.back()} />
+              </div>
+            </EventProvider>
+          </ConnectionsProvider>
+        </RequireAdmin>
       }/>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
