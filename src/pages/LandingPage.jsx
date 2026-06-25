@@ -20,12 +20,47 @@ export default function LandingPage() {
       padding: '40px 32px',
       textAlign: 'center',
       gap: 32,
+      position: 'relative',
     }}>
-      {/* Orb */}
-      <motion.div
-        {...fadeUp(0.05)}
-        style={{ position: 'relative', display: 'inline-block' }}
+
+      {/* Acceso empresas — esquina superior derecha */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+        onClick={() => navigate('/venue-admin')}
+        style={{
+          position: 'absolute',
+          top: 24,
+          right: 24,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '8px 16px',
+          borderRadius: 100,
+          border: '1px solid var(--border2)',
+          background: 'var(--surface)',
+          color: 'var(--text3)',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontFamily: 'var(--font-body)',
+          fontWeight: 500,
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = 'var(--accent)'
+          e.currentTarget.style.color = 'var(--accent2)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'var(--border2)'
+          e.currentTarget.style.color = 'var(--text3)'
+        }}
       >
+        🏢 Acceso empresas
+      </motion.button>
+
+      {/* Orb */}
+      <motion.div {...fadeUp(0.05)} style={{ position: 'relative', display: 'inline-block' }}>
         <div style={{
           width: 160,
           height: 160,
@@ -41,8 +76,7 @@ export default function LandingPage() {
         }}>
           🌙
           <div style={{
-            position: 'absolute',
-            inset: -20,
+            position: 'absolute', inset: -20,
             border: '1px dashed rgba(200,180,255,0.2)',
             borderRadius: '50%',
           }} />
