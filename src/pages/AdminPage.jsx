@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAdmin } from '@/hooks/useAdmin'
+import { supabase } from '@/lib/supabase'
+import CreateVenueModal from '@/components/admin/CreateVenueModal.jsx'
 import { showToast } from '@/components/ui/Toast'
 import { MOODS } from '@/lib/constants'
 
@@ -11,6 +13,7 @@ const TABS = [
   { id: 'conversations', label: 'Chats',        icon: '💬' },
   { id: 'broadcast',     label: 'Broadcast',    icon: '📣' },
   { id: 'logs',          label: 'Auditoría',    icon: '🗂️' },
+  { id: 'venues',        label: 'Locales',      icon: '🏢' },
 ]
 
 const REASON_LABELS = {
@@ -86,6 +89,7 @@ export default function AdminPage({ onBack }) {
             {tab === 'conversations' && <ConversationsTab admin={admin} />}
             {tab === 'broadcast'     && <BroadcastTab     admin={admin} />}
             {tab === 'logs'          && <LogsTab          admin={admin} />}
+            {tab === 'venues'        && <VenuesTab        admin={admin} />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -606,5 +610,94 @@ function Modal({ show, onClose, children }) {
         </motion.div>
       )}
     </AnimatePresence>
+  )
+}
+
+// ── VENUES TAB ────────────────────────────────────────────────────────────────
+function VenuesTab({ admin }) {
+  const [venues, setVenues]         = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+
+  useEffect(() => { fetchVenues() }, [])
+
+  async function fetchVenues() {
+    setLoading(true)
+    const { data } = await supabase.from('venues').select('*').order('created_at', { ascending: false })
+    setVenues(data || [])
+    setLoading(false)
+  }
+
+  async function toggleVenue(venueId, active) {
+    await supabase.from('venues').update({ active }).eq('id', venueId)
+    await fetchVenues()
+  }
+
+  const planColors = { trial: 'var(--gold)', monthly: 'var(--teal)', pay_per_event: 'var(--accent)' }
+  const planLabels = { trial: 'Trial', monthly: 'Mensual', pay_per_event: 'Por evento' }
+  const typeEmojis = { discoteca: '🪩', sala: '🎸', bar: '🍸', festival: '🎪', club: '🎶', otro: '🏢' }
+
+  if (loading) return <Loader />
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p style={{ fontSize: 14, color: 'var(--text2)' }}>{venues.length} locales registrados</p>
+        <button className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13 }} onClick={() => setShowCreate(true)}>
+          + Nuevo local
+        </button>
+      </div>
+
+      {venues.length === 0 && <EmptyMsg text="Sin locales registrados" />}
+
+      {venues.map(v => (
+        <div key={v.id} className="card" style={{ padding: '14px 16px', opacity: v.active ? 1 : 0.6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            {v.logo_url
+              ? <img src={v.logo_url} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+              : <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{typeEmojis[v.venue_type] || '🏢'}</div>
+            }
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
+                {!v.active && <Badge color="var(--text3)">inactivo</Badge>}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>{v.city} · {v.owner_email}</div>
+            </div>
+            <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 100, background: `${planColors[v.plan]}22`, color: planColors[v.plan], fontWeight: 600, flexShrink: 0 }}>
+              {planLabels[v.plan] || v.plan}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => toggleVenue(v.id, !v.active)}
+              style={{ fontSize: 12, padding: '7px 14px', borderRadius: 100, border: `1px solid ${v.active ? 'rgba(251,113,133,0.3)' : 'rgba(94,234,212,0.3)'}`, background: v.active ? 'rgba(251,113,133,0.08)' : 'rgba(94,234,212,0.08)', color: v.active ? 'var(--red)' : 'var(--teal)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+            >
+              {v.active ? 'Desactivar' : 'Activar'}
+            </button>
+            {v.owner_user_id && (
+              <div style={{ fontSize: 11, padding: '7px 12px', borderRadius: 100, background: 'var(--surface2)', color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                ✓ Panel vinculado
+              </div>
+            )}
+            {!v.owner_user_id && (
+              <div style={{ fontSize: 11, padding: '7px 12px', borderRadius: 100, background: 'rgba(252,211,77,0.08)', border: '1px solid rgba(252,211,77,0.2)', color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                ⚠️ Sin usuario
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <AnimatePresence>
+        {showCreate && (
+          <CreateVenueModal
+            onClose={() => setShowCreate(false)}
+            onCreated={() => fetchVenues()}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
