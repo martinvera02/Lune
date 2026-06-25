@@ -2,12 +2,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { ConnectionsProvider } from '@/context/ConnectionsContext'
 import { EventProvider } from '@/context/EventContext'
-import ToastProvider  from '@/components/ui/Toast'
-import LandingPage    from '@/pages/LandingPage'
-import AuthPage       from '@/pages/AuthPage'
-import OnboardingPage from '@/pages/OnboardingPage'
-import AppShell       from '@/pages/AppShell'
-import AdminPage      from '@/pages/AdminPage'
+import ToastProvider     from '@/components/ui/Toast'
+import LandingPage       from '@/pages/LandingPage'
+import AuthPage          from '@/pages/AuthPage'
+import OnboardingPage    from '@/pages/OnboardingPage'
+import AppShell          from '@/pages/AppShell'
+import AdminPage         from '@/pages/AdminPage'
+import VenueAdminPage    from '@/pages/VenueAdminPage'
 
 const Spinner = () => (
   <div className="app-loading"><div className="loading-orb" /></div>
@@ -32,9 +33,7 @@ function RequireAdmin({ children }) {
   const { profile, loading } = useAuth()
   if (loading) return <Spinner />
   if (!profile) return <Navigate to="/auth" replace />
-  if (profile.role !== 'admin' && profile.role !== 'moderator') {
-    return <Navigate to="/app" replace />
-  }
+  if (profile.role !== 'admin' && profile.role !== 'moderator') return <Navigate to="/app" replace />
   return children
 }
 
@@ -76,6 +75,12 @@ function AppRoutes() {
             </EventProvider>
           </ConnectionsProvider>
         </RequireAdmin>
+      }/>
+      <Route path="/venue-admin/*" element={
+        <RequireAuth>
+          <ToastProvider />
+          <VenueAdminPage />
+        </RequireAuth>
       }/>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
