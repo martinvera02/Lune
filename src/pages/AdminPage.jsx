@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAdmin } from '@/hooks/useAdmin'
 import { showToast } from '@/components/ui/Toast'
@@ -177,6 +177,14 @@ function UsersTab({ admin }) {
   const [banReason, setBanReason] = useState('')
   const [processing, setProcessing] = useState(false)
 
+  // Búsqueda en tiempo real con debounce de 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchUsers(userSearch)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [userSearch])
+
   async function handleBan() {
     if (!banReason.trim()) return
     setProcessing(true)
@@ -203,14 +211,21 @@ function UsersTab({ admin }) {
           placeholder="Buscar por nombre..."
           value={userSearch}
           onChange={e => setUserSearch(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && fetchUsers(userSearch)}
+          autoFocus
         />
-        <button
-          onClick={() => fetchUsers(userSearch)}
-          style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16 }}
-        >
-          🔍
-        </button>
+        {usersLoading && (
+          <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
+            <div className="loading-orb" style={{ width: 16, height: 16 }} />
+          </div>
+        )}
+        {userSearch && !usersLoading && (
+          <button
+            onClick={() => setUserSearch('')}
+            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 16 }}
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {usersLoading ? <LoadingState /> : (
