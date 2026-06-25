@@ -1,5 +1,5 @@
 import { MOODS } from '@/lib/constants'
-import { SecureAvatar } from '@/hooks/useSignedUrl'
+import { SecureAvatar } from '@/hooks/useSignedUrl.jsx'
 
 export default function InboxItem({ connection, other, unread, onClick }) {
   const mood    = MOODS.find(m => m.id === other?.mood_id) || MOODS[0]
