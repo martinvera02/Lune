@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 
 export default function AuthPage() {
-  const [params]       = useSearchParams()
-  const [mode, setMode] = useState(params.get('mode') === 'login' ? 'login' : 'signup')
+  const [params]          = useSearchParams()
+  const redirect          = params.get('redirect') || null
+  const [mode, setMode]   = useState(params.get('mode') === 'login' ? 'login' : 'signup')
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]     = useState('')
@@ -30,15 +31,23 @@ export default function AuthPage() {
       return
     }
 
+    // Si hay redirect (ej: /venue-admin), ir ahí
+    if (redirect) {
+      navigate(redirect)
+      return
+    }
+
     navigate(mode === 'login' ? '/app' : '/onboarding')
   }
 
   function translateError(msg) {
-    if (msg.includes('Invalid login')) return 'Email o contraseña incorrectos'
+    if (msg.includes('Invalid login'))      return 'Email o contraseña incorrectos'
     if (msg.includes('already registered')) return 'Este email ya está registrado'
-    if (msg.includes('Password should')) return 'La contraseña debe tener al menos 6 caracteres'
+    if (msg.includes('Password should'))    return 'La contraseña debe tener al menos 6 caracteres'
     return 'Algo salió mal. Inténtalo de nuevo.'
   }
+
+  const isVenueLogin = redirect === '/venue-admin'
 
   return (
     <div style={{
@@ -52,7 +61,9 @@ export default function AuthPage() {
       {/* Back */}
       <Link to="/" style={{
         position: 'absolute', top: 24, left: 24,
-        color: 'var(--text3)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6,
+        color: 'var(--text3)', fontSize: 13,
+        display: 'flex', alignItems: 'center', gap: 6,
+        textDecoration: 'none',
       }}>
         ← Volver
       </Link>
@@ -76,7 +87,10 @@ export default function AuthPage() {
           Lune
         </div>
         <p style={{ color: 'var(--text3)', fontSize: 13 }}>
-          {mode === 'login' ? 'Bienvenida/o de vuelta 🌙' : 'Crea tu cuenta'}
+          {isVenueLogin
+            ? '🎉 Acceso para locales'
+            : mode === 'login' ? 'Bienvenida/o de vuelta 🌙' : 'Crea tu cuenta'
+          }
         </p>
       </motion.div>
 
@@ -137,22 +151,27 @@ export default function AuthPage() {
         >
           {loading
             ? 'Un momento...'
-            : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
+            : isVenueLogin ? 'Entrar al panel'
+            : mode === 'login' ? 'Entrar' : 'Crear cuenta'
+          }
         </button>
 
-        <p style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 13, marginTop: 4 }}>
-          {mode === 'login' ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
-          <button
-            type="button"
-            onClick={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError('') }}
-            style={{
-              background: 'none', border: 'none', color: 'var(--accent2)',
-              cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)',
-            }}
-          >
-            {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
-          </button>
-        </p>
+        {/* Solo mostrar el toggle si NO es venue login */}
+        {!isVenueLogin && (
+          <p style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 13, marginTop: 4 }}>
+            {mode === 'login' ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
+            <button
+              type="button"
+              onClick={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError('') }}
+              style={{
+                background: 'none', border: 'none', color: 'var(--accent2)',
+                cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)',
+              }}
+            >
+              {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
+            </button>
+          </p>
+        )}
       </motion.form>
     </div>
   )

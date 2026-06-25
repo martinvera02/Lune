@@ -37,6 +37,14 @@ function RequireAdmin({ children }) {
   return children
 }
 
+// Solo requiere sesión — VenueAdminPage verifica si es dueño de venue
+function RequireVenueAuth({ children }) {
+  const { session, loading } = useAuth()
+  if (loading) return <Spinner />
+  if (!session) return <Navigate to="/auth?redirect=/venue-admin" replace />
+  return children
+}
+
 function AppRoutes() {
   const { session, profile, loading } = useAuth()
   if (loading) return <Spinner />
@@ -77,10 +85,10 @@ function AppRoutes() {
         </RequireAdmin>
       }/>
       <Route path="/venue-admin/*" element={
-        <RequireAuth>
+        <RequireVenueAuth>
           <ToastProvider />
           <VenueAdminPage />
-        </RequireAuth>
+        </RequireVenueAuth>
       }/>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
